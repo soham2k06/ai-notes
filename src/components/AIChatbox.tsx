@@ -17,6 +17,7 @@ function AIChatbox() {
     handleSubmit,
     setMessages,
     isLoading,
+    error,
   } = useChat();
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -51,6 +52,20 @@ function AIChatbox() {
           <ChatMessage
             message={{ role: "assistant", content: "Thinking..." }}
           />
+        )}
+        {error && (
+          <ChatMessage
+            message={{
+              role: "assistant",
+              content: "Something went wrong! Please try again.",
+            }}
+          />
+        )}
+        {!error && !messages.length && (
+          <div className="flex h-full items-center justify-center gap-3">
+            <Bot />
+            Ask the AI a question about your notes
+          </div>
         )}
       </div>
       <form onSubmit={handleSubmit} className="flex gap-2">
