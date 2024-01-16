@@ -9,7 +9,6 @@ export default function Home() {
   const { userId } = auth();
 
   if (userId) redirect("/notes");
-  // test
   return (
     <main className="flex h-screen flex-col items-center justify-center gap-5">
       <div className="flex items-center gap-4">
