@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "NoteSwift",
-  description: "The intelligent note taking app",
+  description: "The intelligent note taking app, explore notes with AI.",
 };
 
 export default function RootLayout({
