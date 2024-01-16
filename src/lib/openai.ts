@@ -4,7 +4,7 @@ const apiKey = process.env.OPENAI_API_KEY;
 
 if (!apiKey) throw new Error("OPENAI_API_KEY is not defined");
 
-export const openai = new OpenAI({ apiKey });
+const openai = new OpenAI({ apiKey });
 
 export async function getEmbedding(text: string) {
   const res = await openai.embeddings.create({
@@ -17,3 +17,5 @@ export async function getEmbedding(text: string) {
 
   return embedding;
 }
+
+export default openai;
