@@ -41,7 +41,8 @@ export async function POST(req: Request) {
         "The relevant notes for this query are:\n" +
         relevantNotes
           .map((note) => `Title: ${note.title}\n\nContent:\n${note.content}`)
-          .join("\n\n"),
+          .join("\n\n") +
+        "\n\nAlways take a look at this before giving a response.",
     };
 
     const response = await openai.chat.completions.create({
