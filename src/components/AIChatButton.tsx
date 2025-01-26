@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 function AIChatButton() {
   return (
     <>
-      <Popover onOpenChange={() => console.log("HII")}>
+      <Popover>
         <PopoverTrigger asChild>
           <Button>
             <Bot size={20} className="mr-2" /> AI Chat

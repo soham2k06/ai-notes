@@ -70,7 +70,6 @@ function AddEditNoteDialog({
       setOpen(false);
     } catch (error) {
       console.error(error);
-      alert("Something went wrong. Please try again.");
     }
   }
 
