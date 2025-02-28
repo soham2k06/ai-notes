@@ -6,19 +6,21 @@ import { Input } from "./ui/input";
 import { CoreMessage } from "ai";
 import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import LoadingButton from "./ui/loading-button";
-import { continueChat } from "@/lib/actions/chat";
-import { readStreamableValue, StreamableValue } from "ai/rsc";
+import { useChat } from "@ai-sdk/react";
 
 type IMessageWithId = CoreMessage & { id?: string };
 
 function AIChatbox() {
-  const [input, setInput] = useState("");
+  // const [input, setInput] = useState("");
 
-  const [isLoading, setIsLoading] = useState(false);
+  // const [isLoading, setIsLoading] = useState(false);
 
-  const [messages, setMessages] = useState<IMessageWithId[]>([]);
+  // const [messages, setMessages] = useState<IMessageWithId[]>([]);
+
+  const { messages, input, setInput, handleSubmit, isLoading, setMessages } =
+    useChat();
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -37,45 +39,7 @@ function AIChatbox() {
     if (isLoading) return;
     if (!input) return;
 
-    const newMsg: IMessageWithId = { content: input, role: "user" };
-    const newMessages: IMessageWithId[] = [...messages, newMsg];
-
-    setMessages(newMessages);
-    setInput("");
-
-    setIsLoading(true);
-
-    setMessages([
-      ...newMessages,
-      {
-        id: "loading-msg",
-        role: "assistant",
-        content: "Typing...",
-      },
-    ]);
-
-    const result = await continueChat(newMessages);
-
-    if ((result as { error: boolean }).error)
-      alert("An error occurred. Please try again.");
-
-    for await (const content of readStreamableValue(
-      result as StreamableValue<string, any>,
-    )) {
-      const newMessagesToPass = newMessages.filter(
-        (msg) => msg.id !== "loading-msg",
-      );
-
-      setMessages([
-        ...newMessagesToPass,
-        {
-          role: "assistant",
-          content: content as string,
-        },
-      ]);
-    }
-
-    setIsLoading(false);
+    handleSubmit();
 
     setTimeout(() => inputRef.current?.focus(), 1);
   }
@@ -93,7 +57,7 @@ function AIChatbox() {
         ref={scrollRef}
       >
         {messages.map((msg, index) => (
-          <ChatMessage key={msg.id ?? index} message={msg} />
+          <ChatMessage key={msg.id ?? index} message={msg as CoreMessage} />
         ))}
         {isLoading && lastMessageIsUser && (
           <ChatMessage

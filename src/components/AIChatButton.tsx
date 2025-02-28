@@ -1,4 +1,3 @@
-import { useState } from "react";
 import AIChatbox from "./AIChatbox";
 import { Button } from "./ui/button";
 import { Bot } from "lucide-react";

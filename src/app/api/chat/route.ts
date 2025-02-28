@@ -1,5 +1,3 @@
-"use server";
-
 import { notesIndex } from "@/lib/db/pinecone";
 import prisma from "@/lib/db/prisma";
 import { auth } from "@clerk/nextjs";
@@ -8,8 +6,11 @@ import { getEmbedding } from "@/lib/gemini";
 import { createStreamableValue } from "ai/rsc";
 import { CoreMessage, streamText } from "ai";
 import { google } from "@ai-sdk/google";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function continueChat(messages: CoreMessage[]) {
+export async function POST(req: NextRequest) {
+  const { messages } = (await req.json()) as { messages: CoreMessage[] };
+
   try {
     const messagesTruncated = messages.slice(-6);
 
@@ -45,15 +46,19 @@ export async function continueChat(messages: CoreMessage[]) {
         "\n\nDo not mention like 'Based on the provided notes, I think...'. Just give the answer.",
     };
 
-    const result = await streamText({
-      model: google("gemini-1.0-pro"),
+    const result = streamText({
+      model: google("gemini-1.5-flash"),
       messages: systemMessage ? [systemMessage, ...messages] : messages,
     });
 
-    const stream = createStreamableValue(result.textStream);
-    return stream.value;
+    return result.toDataStreamResponse();
   } catch (error) {
     console.error(error);
-    return { error: true };
+    return NextResponse.json(
+      {
+        error,
+      },
+      { status: 500 },
+    );
   }
 }
