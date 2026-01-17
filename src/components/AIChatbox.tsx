@@ -3,24 +3,48 @@ import Markdown from "react-markdown";
 import { Bot, Trash } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { CoreMessage } from "ai";
+
 import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import LoadingButton from "./ui/loading-button";
-import { useChat } from "@ai-sdk/react";
+import { CoreMessage } from "@/lib/types";
 
 type IMessageWithId = CoreMessage & { id?: string };
 
+async function streamChatResponse(
+  history: CoreMessage[],
+  onChunk?: (chunk: string) => void,
+) {
+  const res = await fetch("/api/chat", {
+    method: "POST",
+    body: JSON.stringify({ history }),
+  });
+
+  if (!res.body) throw new Error("No response body from server.");
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let accumulated = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    const chunk = decoder.decode(value, { stream: true });
+    accumulated += chunk;
+
+    if (onChunk) onChunk(chunk);
+  }
+
+  reader.releaseLock();
+  return accumulated;
+}
+
 function AIChatbox() {
-  // const [input, setInput] = useState("");
-
-  // const [isLoading, setIsLoading] = useState(false);
-
-  // const [messages, setMessages] = useState<IMessageWithId[]>([]);
-
-  const { messages, input, setInput, handleSubmit, isLoading, setMessages } =
-    useChat();
+  const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<CoreMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -35,13 +59,44 @@ function AIChatbox() {
     e: React.FormEvent<HTMLFormElement> | React.KeyboardEvent,
   ) {
     e.preventDefault();
+    if (!input || isLoading) return;
 
-    if (isLoading) return;
-    if (!input) return;
+    const userMsg: CoreMessage = { role: "user", content: input };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
+    setIsLoading(true);
 
-    handleSubmit();
+    // Temporary loading message
+    const loadingMsg: CoreMessage = {
+      id: "loading-msg",
+      role: "model",
+      content: "",
+    };
+    setMessages((prev) => [...prev, loadingMsg]);
 
-    setTimeout(() => inputRef.current?.focus(), 1);
+    // Capture only the conversation history (exclude loading message)
+    const history = [...messages, userMsg];
+
+    await streamChatResponse(history, (chunk) => {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === "loading-msg"
+            ? { ...msg, content: msg.content + chunk } // append chunk
+            : msg,
+        ),
+      );
+    });
+
+    // Remove loading-msg ID (optional, or keep it with final content)
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === "loading-msg" ? { ...msg, id: undefined } : msg,
+      ),
+    );
+
+    setTimeout(() => inputRef.current?.focus(), 100);
+
+    setIsLoading(false);
   }
 
   useEffect(() => {
@@ -49,6 +104,8 @@ function AIChatbox() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  console.log(messages);
 
   return (
     <div className="flex h-[600px] flex-col">
@@ -60,11 +117,8 @@ function AIChatbox() {
           <ChatMessage key={msg.id ?? index} message={msg as CoreMessage} />
         ))}
         {isLoading && lastMessageIsUser && (
-          <ChatMessage
-            message={{ role: "assistant", content: "Thinking..." }}
-          />
+          <ChatMessage message={{ role: "model", content: "Thinking..." }} />
         )}
-
         {!messages.length && (
           <div className="flex h-full items-center justify-center gap-3">
             <Bot />
@@ -110,7 +164,7 @@ function ChatMessage({
   message: IMessageWithId;
 }) {
   const { user } = useUser();
-  const isAIMessage = role === "assistant";
+  const isAIMessage = role === "model";
 
   return (
     <div
