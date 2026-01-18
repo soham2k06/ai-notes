@@ -1,21 +1,10 @@
 import { notesIndex } from "@/lib/db/pinecone";
 import prisma from "@/lib/db/prisma";
+import { ai, getEmbedding } from "@/lib/gemini";
 import { CoreMessage } from "@/lib/types";
 import { auth } from "@clerk/nextjs";
-import { GoogleGenAI } from "@google/genai";
-
-const GEMINI_API_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY!;
-const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
 import { NextRequest, NextResponse } from "next/server";
-
-async function getEmbedding(text: string): Promise<number[]> {
-  const response = await ai.models.embedContent({
-    model: "text-embedding-004",
-    contents: [text],
-  });
-  return response.embeddings?.[0]?.values ?? [];
-}
 
 export async function POST(req: NextRequest) {
   const { history: historyFull } = (await req.json()) as {
